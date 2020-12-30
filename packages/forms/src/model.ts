@@ -15,11 +15,11 @@ import {composeAsyncValidators, composeValidators, toObservable} from './validat
 
 /**
  * The validation status of the control.
- * 
+ *
  * @publicApi
  */
 export const enum FormControlStatus {
-  
+
   /**
    * Reports that a FormControl is valid, meaning that no errors exist in the input value.
    */
@@ -754,7 +754,8 @@ export abstract class AbstractControl {
   }
 
   private _setInitialStatus() {
-    (this as {status: FormControlStatus}).status = this._allControlsDisabled() ? FormControlStatus.Disabled : FormControlStatus.Valid;
+    (this as {status: FormControlStatus}).status =
+        this._allControlsDisabled() ? FormControlStatus.Disabled : FormControlStatus.Valid;
   }
 
   private _runValidator(): ValidationErrors|null {
@@ -934,7 +935,8 @@ export abstract class AbstractControl {
   private _calculateStatus(): FormControlStatus {
     if (this._allControlsDisabled()) return FormControlStatus.Disabled;
     if (this.errors) return FormControlStatus.Invalid;
-    if (this._hasOwnPendingAsyncValidator || this._anyControlsHaveStatus(FormControlStatus.Pending)) return FormControlStatus.Pending;
+    if (this._hasOwnPendingAsyncValidator || this._anyControlsHaveStatus(FormControlStatus.Pending))
+      return FormControlStatus.Pending;
     if (this._anyControlsHaveStatus(FormControlStatus.Invalid)) return FormControlStatus.Invalid;
     return FormControlStatus.Valid;
   }
