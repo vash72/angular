@@ -14,36 +14,39 @@ import {AsyncValidatorFn, ValidationErrors, ValidatorFn} from './directives/vali
 import {composeAsyncValidators, composeValidators, toObservable} from './validators';
 
 /**
- * Reports that a FormControl is valid, meaning that no errors exist in the input value.
- *
- * @see `status`
+ * The validation status of the control.
+ * 
+ * @publicApi
  */
-export const VALID = 'VALID';
+export const enum FormControlStatus {
+  
+  /**
+   * Reports that a FormControl is valid, meaning that no errors exist in the input value.
+   */
+  Valid = 'VALID',
 
-/**
- * Reports that a FormControl is invalid, meaning that an error exists in the input value.
- *
- * @see `status`
- */
-export const INVALID = 'INVALID';
+  /**
+   * Reports that a FormControl is invalid, meaning that an error exists in the input value.
+   */
+  Invalid = 'INVALID',
 
-/**
- * Reports that a FormControl is pending, meaning that that async validation is occurring and
- * errors are not yet available for the input value.
- *
- * @see `markAsPending`
- * @see `status`
- */
-export const PENDING = 'PENDING';
 
-/**
- * Reports that a FormControl is disabled, meaning that the control is exempt from ancestor
- * calculations of validity or value.
- *
- * @see `markAsDisabled`
- * @see `status`
- */
-export const DISABLED = 'DISABLED';
+  /**
+   * Reports that a FormControl is pending, meaning that that async validation is occurring and
+   * errors are not yet available for the input value.
+   *
+   * @see `markAsPending`
+   */
+  Pending = 'PENDING',
+
+  /**
+   * Reports that a FormControl is disabled, meaning that the control is exempt from ancestor
+   * calculations of validity or value.
+   *
+   * @see `markAsDisabled`
+   */
+  Disabled = 'DISABLED',
+}
 
 function _find(control: AbstractControl, path: Array<string|number>|string, delimiter: string) {
   if (path == null) return null;
@@ -272,19 +275,13 @@ export abstract class AbstractControl {
   }
 
   /**
-   * The validation status of the control. There are four possible
-   * validation status values:
-   *
-   * * **VALID**: This control has passed all validation checks.
-   * * **INVALID**: This control has failed at least one validation check.
-   * * **PENDING**: This control is in the midst of conducting a validation check.
-   * * **DISABLED**: This control is exempt from validation checks.
+   * The validation status of the control.
    *
    * These status values are mutually exclusive, so a control cannot be
    * both valid AND invalid or invalid AND disabled.
    */
   // TODO(issue/24571): remove '!'.
-  public readonly status!: string;
+  public readonly status!: FormControlStatus;
 
   /**
    * A control is `valid` when its `status` is `VALID`.
@@ -295,7 +292,7 @@ export abstract class AbstractControl {
    * false otherwise.
    */
   get valid(): boolean {
-    return this.status === VALID;
+    return this.status === FormControlStatus.Valid;
   }
 
   /**
@@ -307,7 +304,7 @@ export abstract class AbstractControl {
    * false otherwise.
    */
   get invalid(): boolean {
-    return this.status === INVALID;
+    return this.status === FormControlStatus.Invalid;
   }
 
   /**
@@ -319,7 +316,7 @@ export abstract class AbstractControl {
    * false otherwise.
    */
   get pending(): boolean {
-    return this.status == PENDING;
+    return this.status == FormControlStatus.Pending;
   }
 
   /**
@@ -334,7 +331,7 @@ export abstract class AbstractControl {
    * @returns True if the control is disabled, false otherwise.
    */
   get disabled(): boolean {
-    return this.status === DISABLED;
+    return this.status === FormControlStatus.Disabled;
   }
 
   /**
@@ -347,7 +344,7 @@ export abstract class AbstractControl {
    *
    */
   get enabled(): boolean {
-    return this.status !== DISABLED;
+    return this.status !== FormControlStatus.Disabled;
   }
 
   /**
@@ -597,7 +594,7 @@ export abstract class AbstractControl {
    *
    */
   markAsPending(opts: {onlySelf?: boolean, emitEvent?: boolean} = {}): void {
-    (this as {status: string}).status = PENDING;
+    (this as {status: FormControlStatus}).status = FormControlStatus.Pending;
 
     if (opts.emitEvent !== false) {
       (this.statusChanges as EventEmitter<any>).emit(this.status);
@@ -630,7 +627,7 @@ export abstract class AbstractControl {
     // parent's dirtiness based on the children.
     const skipPristineCheck = this._parentMarkedDirty(opts.onlySelf);
 
-    (this as {status: string}).status = DISABLED;
+    (this as {status: FormControlStatus}).status = FormControlStatus.Disabled;
     (this as {errors: ValidationErrors | null}).errors = null;
     this._forEachChild((control: AbstractControl) => {
       control.disable({...opts, onlySelf: true});
@@ -669,7 +666,7 @@ export abstract class AbstractControl {
     // parent's dirtiness based on the children.
     const skipPristineCheck = this._parentMarkedDirty(opts.onlySelf);
 
-    (this as {status: string}).status = VALID;
+    (this as {status: FormControlStatus}).status = FormControlStatus.Valid;
     this._forEachChild((control: AbstractControl) => {
       control.enable({...opts, onlySelf: true});
     });
@@ -733,9 +730,9 @@ export abstract class AbstractControl {
     if (this.enabled) {
       this._cancelExistingSubscription();
       (this as {errors: ValidationErrors | null}).errors = this._runValidator();
-      (this as {status: string}).status = this._calculateStatus();
+      (this as {status: FormControlStatus}).status = this._calculateStatus();
 
-      if (this.status === VALID || this.status === PENDING) {
+      if (this.status === FormControlStatus.Valid || this.status === FormControlStatus.Pending) {
         this._runAsyncValidator(opts.emitEvent);
       }
     }
@@ -757,7 +754,7 @@ export abstract class AbstractControl {
   }
 
   private _setInitialStatus() {
-    (this as {status: string}).status = this._allControlsDisabled() ? DISABLED : VALID;
+    (this as {status: FormControlStatus}).status = this._allControlsDisabled() ? FormControlStatus.Disabled : FormControlStatus.Valid;
   }
 
   private _runValidator(): ValidationErrors|null {
@@ -766,7 +763,7 @@ export abstract class AbstractControl {
 
   private _runAsyncValidator(emitEvent?: boolean): void {
     if (this.asyncValidator) {
-      (this as {status: string}).status = PENDING;
+      (this as {status: FormControlStatus}).status = FormControlStatus.Pending;
       this._hasOwnPendingAsyncValidator = true;
       const obs = toObservable(this.asyncValidator(this));
       this._asyncValidationSubscription = obs.subscribe((errors: ValidationErrors|null) => {
@@ -916,7 +913,7 @@ export abstract class AbstractControl {
 
   /** @internal */
   _updateControlsErrors(emitEvent: boolean): void {
-    (this as {status: string}).status = this._calculateStatus();
+    (this as {status: FormControlStatus}).status = this._calculateStatus();
 
     if (emitEvent) {
       (this.statusChanges as EventEmitter<string>).emit(this.status);
@@ -934,12 +931,12 @@ export abstract class AbstractControl {
   }
 
 
-  private _calculateStatus(): string {
-    if (this._allControlsDisabled()) return DISABLED;
-    if (this.errors) return INVALID;
-    if (this._hasOwnPendingAsyncValidator || this._anyControlsHaveStatus(PENDING)) return PENDING;
-    if (this._anyControlsHaveStatus(INVALID)) return INVALID;
-    return VALID;
+  private _calculateStatus(): FormControlStatus {
+    if (this._allControlsDisabled()) return FormControlStatus.Disabled;
+    if (this.errors) return FormControlStatus.Invalid;
+    if (this._hasOwnPendingAsyncValidator || this._anyControlsHaveStatus(FormControlStatus.Pending)) return FormControlStatus.Pending;
+    if (this._anyControlsHaveStatus(FormControlStatus.Invalid)) return FormControlStatus.Invalid;
+    return FormControlStatus.Valid;
   }
 
   /** @internal */
